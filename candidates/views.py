@@ -47,17 +47,28 @@ class ResumeUploadView(APIView):
         if ext not in ['.pdf', '.docx']:
             return Response({'error': 'Only PDF and DOCX files are allowed.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Deactivate previous resumes
-        class ResumeUploadView(APIView):
+       # Deactivate previous resumes
+class ResumeUploadView(APIView):
+
     def post(self, request):
 
         try:
             file = request.FILES['resume']
-            ...
-        except Exception as e:
-            return Response({"error": str(e)})
 
-        resume = Resume.objects.create(candidate=profile, file=file)
+            # your logic here
+            resume = Resume.objects.create(
+                candidate=profile,
+                file=file
+            )
+
+            return Response({
+                "message": "Resume uploaded successfully"
+            })
+
+        except Exception as e:
+            return Response({
+                "error": str(e)
+            })
 
         # Parse and save extracted data
         file_path = os.path.join(settings.MEDIA_ROOT, resume.file.name)
