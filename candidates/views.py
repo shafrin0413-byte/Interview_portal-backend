@@ -48,15 +48,16 @@ class ResumeUploadView(APIView):
             return Response({'error': 'Only PDF and DOCX files are allowed.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Deactivate previous resumes
-        profile.resumes.update(is_active=False)
+        class ResumeUploadView(APIView):
+    def post(self, request):
 
-       try:
-    resume = Resume.objects.create(candidate=profile, file=file)
-except Exception as e:
-    return Response(
-        {"error": str(e)},
-        status=500
-    )
+        try:
+            file = request.FILES['resume']
+            ...
+        except Exception as e:
+            return Response({"error": str(e)})
+
+        resume = Resume.objects.create(candidate=profile, file=file)
 
         # Parse and save extracted data
         file_path = os.path.join(settings.MEDIA_ROOT, resume.file.name)
