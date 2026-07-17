@@ -28,7 +28,9 @@ SECRET_KEY = 'django-insecure-_a84w#@&6*zkjcg0yd+ayb@jj&!oy+a@=bpzr5qtp@5r)!52sl
 DEBUG = False
 
 ALLOWED_HOSTS = [
-    "*"
+    ALLOWED_HOSTS = [
+    "interview-portal-backend-zz99.onrender.com"
+]
 ]
 
 
@@ -184,4 +186,4 @@ FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024
 
 ALLOWED_HOSTS = ['*']
 
-CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_ALL_ORIGINS =  "https://ai-interview-portal.netlify.app",

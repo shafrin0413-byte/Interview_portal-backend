@@ -50,7 +50,13 @@ class ResumeUploadView(APIView):
         # Deactivate previous resumes
         profile.resumes.update(is_active=False)
 
-        resume = Resume.objects.create(candidate=profile, file=file)
+       try:
+    resume = Resume.objects.create(candidate=profile, file=file)
+except Exception as e:
+    return Response(
+        {"error": str(e)},
+        status=500
+    )
 
         # Parse and save extracted data
         file_path = os.path.join(settings.MEDIA_ROOT, resume.file.name)
