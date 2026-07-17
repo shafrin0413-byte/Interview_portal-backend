@@ -28,9 +28,7 @@ SECRET_KEY = 'django-insecure-_a84w#@&6*zkjcg0yd+ayb@jj&!oy+a@=bpzr5qtp@5r)!52sl
 DEBUG = False
 
 ALLOWED_HOSTS = [
-    ALLOWED_HOSTS = [
     "interview-portal-backend-zz99.onrender.com"
-]
 ]
 
 
