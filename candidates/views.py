@@ -1,3 +1,38 @@
+from rest_framework import status
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.parsers import MultiPartParser, FormParser
+from django.conf import settings
+import os
+
+from .models import CandidateProfile, Resume, Skill, Education, Experience, Certification
+from .serializers import CandidateProfileSerializer, CandidateProfileUpdateSerializer
+from .utils import parse_resume
+from ai_features.models import ResumeAnalysis
+
+
+def get_or_create_profile(user):
+    profile, _ = CandidateProfile.objects.get_or_create(user=user)
+    return profile
+
+
+class CandidateProfileView(APIView):
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser, FormParser]
+
+    def get(self, request):
+        profile = get_or_create_profile(request.user)
+        return Response(CandidateProfileSerializer(profile).data)
+
+    def patch(self, request):
+        profile = get_or_create_profile(request.user)
+        serializer = CandidateProfileUpdateSerializer(profile, data=request.data, partial=True)
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(CandidateProfileSerializer(profile).data)
+
+
 class ResumeUploadView(APIView):
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser]
@@ -13,7 +48,7 @@ class ResumeUploadView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Validate extension
+        # Validate file type
         ext = os.path.splitext(file.name)[1].lower()
         if ext not in [".pdf", ".docx"]:
             return Response(
@@ -24,14 +59,14 @@ class ResumeUploadView(APIView):
         # Deactivate previous resumes
         Resume.objects.filter(candidate=profile).update(is_active=False)
 
-        # Save new resume
+        # Save resume
         resume = Resume.objects.create(
             candidate=profile,
             file=file,
             is_active=True
         )
 
-        # Parse resume and update profile data
+        # Parse Resume
         try:
             file_path = os.path.join(settings.MEDIA_ROOT, resume.file.name)
             parsed = parse_resume(file_path)
@@ -62,9 +97,53 @@ class ResumeUploadView(APIView):
             ])
 
         except Exception as e:
-            print("Resume parsing error:", str(e))
+            print("Resume Parsing Error:", str(e))
 
         return Response(
             CandidateProfileSerializer(profile).data,
             status=status.HTTP_201_CREATED
         )
+        
+class ResumeDeleteView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, pk):
+        profile = get_or_create_profile(request.user)
+        resume = profile.resumes.filter(pk=pk).first()
+        if not resume:
+            return Response(status=status.HTTP_404_NOT_FOUND)
+        resume.file.delete(save=False)
+        resume.delete()
+        Skill.objects.filter(candidate=profile).delete()
+        Education.objects.filter(candidate=profile).delete()
+        Experience.objects.filter(candidate=profile).delete()
+        Certification.objects.filter(candidate=profile).delete()
+        ResumeAnalysis.objects.filter(candidate=profile).delete()
+        return Response(CandidateProfileSerializer(profile).data)
+
+
+class DeleteCandidateAvatarView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request):
+        profile = get_or_create_profile(request.user)
+        if profile.avatar:
+            profile.avatar.delete(save=True)
+        return Response(CandidateProfileSerializer(profile).data)
+
+
+class SkillsView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        profile = get_or_create_profile(request.user)
+        name = request.data.get('name', '').strip()
+        if not name:
+            return Response({'error': 'Skill name required.'}, status=status.HTTP_400_BAD_REQUEST)
+        skill, created = profile.skills.get_or_create(name=name)
+        return Response({'id': skill.id, 'name': skill.name}, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+    def delete(self, request, pk):
+        profile = get_or_create_profile(request.user)
+        profile.skills.filter(pk=pk).delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
